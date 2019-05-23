@@ -19,7 +19,22 @@ class Daemon(object):
         self.chore = os.environ['CHORE_API']
 
     @staticmethod
-    def need(data):
+    def expire(data):
+        """
+        Determines if there's a need to expire
+        """
+
+        now = time.time()
+
+        # If it has an expires and it's been more than that much time
+
+        if "expires" in data and data["expires"] + data["start"] < now:
+            return True
+
+        return False
+
+    @staticmethod
+    def remind(data):
         """
         Determines if there's a need to remind
         """
@@ -52,7 +67,7 @@ class Daemon(object):
 
             if "start" in task and "end" not in task:
                 
-                if self.need(task):
+                if self.remind(task):
 
                     requests.patch(f"{self.chore}/routine/{routine['id']}/task/{task['id']}/remind").raise_for_status()
 
@@ -63,7 +78,11 @@ class Daemon(object):
         Sees if any reminders need to go out for a routine
         """
 
-        if self.need(routine["data"]):
+        if self.expire(routine["data"]):
+            requests.patch(f"{self.chore}/routine/{routine['id']}/expire").raise_for_status()
+            return
+
+        if self.remind(routine["data"]):
             requests.patch(f"{self.chore}/routine/{routine['id']}/remind").raise_for_status()
 
         if "tasks" in routine["data"]:
