@@ -29,20 +29,33 @@ class TestService(unittest.TestCase):
         self.assertEqual(daemon.sleep, 0.7)
 
     @unittest.mock.patch("service.time.time", unittest.mock.MagicMock(return_value=7))
-    def test_need(self):
+    def test_expire(self):
 
-        self.assertFalse(self.daemon.need({
+        self.assertTrue(self.daemon.expire({
+            "expires": 5,
+            "start": 1
+        }))
+
+        self.assertFalse(self.daemon.expire({
+            "expires": 6,
+            "start": 1
+        }))
+
+    @unittest.mock.patch("service.time.time", unittest.mock.MagicMock(return_value=7))
+    def test_remind(self):
+
+        self.assertFalse(self.daemon.remind({
             "delay": 7,
             "start": 1
         }))
 
-        self.assertFalse(self.daemon.need({
+        self.assertFalse(self.daemon.remind({
             "delay": 6,
             "start": 1,
             "paused": True
         }))
 
-        self.assertTrue(self.daemon.need({
+        self.assertTrue(self.daemon.remind({
             "delay": 6,
             "start": 1,
             "paused": False,
@@ -50,7 +63,7 @@ class TestService(unittest.TestCase):
             "notified": 4
         }))
 
-        self.assertFalse(self.daemon.need({
+        self.assertFalse(self.daemon.remind({
             "delay": 6,
             "start": 1,
             "paused": False,
@@ -82,10 +95,10 @@ class TestService(unittest.TestCase):
         }
 
         self.daemon.tasks(routine)
-        mock_patch.has_calls(
+        mock_patch.assert_has_calls([
             unittest.mock.call("http://toast.com/routine/1/task/0/remind"),
             unittest.mock.call().raise_for_status()
-        )
+        ])
 
         routine["data"]["tasks"][0]["notified"] = 7
         self.daemon.tasks(routine)
@@ -99,6 +112,21 @@ class TestService(unittest.TestCase):
     @unittest.mock.patch("service.time.time", unittest.mock.MagicMock(return_value=7))
     @unittest.mock.patch("requests.patch")
     def test_routine(self, mock_patch):
+
+        routine =  {
+            "id": 1,
+            "data": {
+                "start": 0,
+                "expires": 6
+            }
+        }
+
+        self.daemon.routine(routine)
+
+        mock_patch.assert_has_calls([
+            unittest.mock.call("http://toast.com/routine/1/expire"),
+            unittest.mock.call().raise_for_status(),
+        ])
 
         routine =  {
             "id": 1,
@@ -125,14 +153,16 @@ class TestService(unittest.TestCase):
             }
         }
 
+        mock_patch.reset_mock()
+
         self.daemon.routine(routine)
 
-        mock_patch.has_calls(
-            unittest.mock.call("http://toast.com/routine/remind"),
+        mock_patch.assert_has_calls([
+            unittest.mock.call("http://toast.com/routine/1/remind"),
             unittest.mock.call().raise_for_status(),
             unittest.mock.call("http://toast.com/routine/1/task/0/remind"),
             unittest.mock.call().raise_for_status()
-        )
+        ])
 
         routine["data"]["notified"] = 7
         routine["data"]["tasks"][0]["notified"] = 7
