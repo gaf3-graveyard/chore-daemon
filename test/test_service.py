@@ -185,7 +185,7 @@ class TestService(unittest.TestCase):
 
         self.daemon.process()
 
-        mock_get.assert_called_with("http://toast.com/routine?status=started")
+        mock_get.assert_called_with("http://toast.com/routine?status=opened")
 
         mock_routine.assert_called_once_with("hey")
 
