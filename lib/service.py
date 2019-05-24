@@ -93,7 +93,7 @@ class Daemon(object):
         Processes all the routines for reminding
         """
 
-        for routine in requests.get(f"{self.chore}/routine?status=started").json()["routines"]:
+        for routine in requests.get(f"{self.chore}/routine?status=opened").json()["routines"]:
 
             try:
                 self.routine(routine)
